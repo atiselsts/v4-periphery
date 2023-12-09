@@ -760,6 +760,58 @@ contract TestFullRange is Test, Deployers, GasSnapshot {
         }
     }
 
+    function testFullRange_removeLiquidity_DrainAndRebalance() public {
+        (, address liquidityToken) = fullRange.poolInfo(idWithLiq);
+
+        uint160 MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
+        // this is ok
+        int256 A0 = 170141183460469231631000000000000000000;
+        // this gets "Arithmetic over/underflow" in modifyPosition called from _removeLiquidity
+        int256 A1 = 170141183460469231632000000000000000000;
+        // this and larger gets "EvmError: Revert" in the swap itself (not a fault of the hook!)
+        int256 A2 = 170141183460469231731687303715884105728;
+        // another error I saw with larger tick spacing is donate() failing,
+        // due to zero liquidity, but non-zero amounts to donate
+
+        IPoolManager.SwapParams memory params =
+                IPoolManager.SwapParams({zeroForOne: false, amountSpecified: A1, sqrtPriceLimitX96: MAX_SQRT_RATIO - 1});
+
+        PoolSwapTest.TestSettings memory testSettings =
+                PoolSwapTest.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
+
+        swapRouter.swap(keyWithLiq, params, testSettings, ZERO_BYTES);
+
+/*
+        // drain liquidity slowly until swap reverts, then see what happens when removeLiquidity is called
+        for (int i = 0; i < 10; ++i) {
+            IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: 2 ** 125, sqrtPriceLimitX96: MAX_SQRT_RATIO - 1});
+
+            PoolSwapTest.TestSettings memory testSettings =
+                    PoolSwapTest.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
+
+            try swapRouter.swap(keyWithLiq, params, testSettings, ZERO_BYTES) {
+                continue;
+            } catch Error(string memory) {
+                break;
+            } catch (bytes memory) {
+                break;
+            }
+        }
+*/
+        UniswapV4ERC20(liquidityToken).approve(address(fullRange), type(uint256).max);
+
+        FullRange.RemoveLiquidityParams memory removeLiquidityParams =
+            FullRange.RemoveLiquidityParams(keyWithLiq.currency0, keyWithLiq.currency1, 3000, 5 ether, MAX_DEADLINE);
+
+        snapStart("FullRangeRemoveLiquidityAndRebalanceAfterDraining");
+        fullRange.removeLiquidity(removeLiquidityParams);
+        snapEnd();
+
+        (bool hasAccruedFees,) = fullRange.poolInfo(idWithLiq);
+        assertEq(hasAccruedFees, false);
+    }
+
     function testFullRange_BeforeModifyPositionFailsWithWrongMsgSender() public {
         manager.initialize(key, SQRT_RATIO_1_1, ZERO_BYTES);
 
