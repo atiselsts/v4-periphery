@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {IERC20Minimal} from "@uniswap/v4-core/src/interfaces/external/IERC20Minimal.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {PoolTestBase} from "@uniswap/v4-core/src/test/PoolTestBase.sol";
 import {Test} from "forge-std/Test.sol";
@@ -52,6 +52,9 @@ contract HookEnabledSwapRouter is PoolTestBase {
 
         // Make sure youve added liquidity to the test pool!
         if (BalanceDelta.unwrap(delta) == 0) revert NoSwapOccurred();
+
+        // If the hook is a no-op, return immediately
+        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) return abi.encode(BalanceDeltaLibrary.MAXIMUM_DELTA);
 
         if (data.params.zeroForOne) {
             _settle(data.key.currency0, data.sender, delta.amount0(), data.testSettings.settleUsingTransfer);
