@@ -6,6 +6,8 @@ optimizer_runs = 1000000
 ffi = true
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 evm_version = "cancun"
+# ignore tstore warnings, contract size warnings, and unnamed return variable warnings
+ignored_error_codes = [2394, 3860, 5574, 6321]
 
 [profile.ci]
 fuzz_runs = 100000
