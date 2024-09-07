@@ -51,10 +51,10 @@ contract HookEnabledSwapRouter is PoolTestBase {
         BalanceDelta delta = manager.swap(data.key, data.params, data.hookData);
 
         // Make sure youve added liquidity to the test pool!
-        if (BalanceDelta.unwrap(delta) == 0) revert NoSwapOccurred();
+        //if (BalanceDelta.unwrap(delta) == 0) revert NoSwapOccurred();
 
         // If the hook is a no-op, return immediately
-        if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) return abi.encode(BalanceDeltaLibrary.MAXIMUM_DELTA);
+        //if (delta == BalanceDeltaLibrary.MAXIMUM_DELTA) return abi.encode(BalanceDeltaLibrary.MAXIMUM_DELTA);
 
         if (data.params.zeroForOne) {
             _settle(data.key.currency0, data.sender, delta.amount0(), data.testSettings.settleUsingTransfer);

@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {GetSender} from "./shared/GetSender.sol";
-import {VirtualPool} from "../contracts/hooks/examples/VirtualPool.sol";
+import {VirtualPool} from "../contracts/hooks/VirtualPool.sol";
 import {VirtualPoolImplementation} from "./shared/implementation/VirtualPoolImplementation.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
@@ -29,9 +29,8 @@ contract TestVirtualPool is Test, Deployers, GasSnapshot {
     TestERC20 token0;
     TestERC20 token1;
     VirtualPool virtualPool = VirtualPool(address(uint160(Hooks.BEFORE_INITIALIZE_FLAG
-                            | Hooks.BEFORE_MODIFY_POSITION_FLAG
-                            | Hooks.BEFORE_SWAP_FLAG
-                            | Hooks.NO_OP_FLAG)));
+                            | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+                            | Hooks.BEFORE_SWAP_FLAG)));
     // for the virtual pool
     PoolId idVirtual;
     PoolKey keyVirtual;
@@ -50,6 +49,10 @@ contract TestVirtualPool is Test, Deployers, GasSnapshot {
         token0 = TestERC20(Currency.unwrap(currency0));
         token1 = TestERC20(Currency.unwrap(currency1));
 
+        vm.label(address(token0), "Token0");
+        vm.label(address(token1), "Token1");
+        vm.label(address(router), "HookEnabledSwapRouter");
+
         vm.record();
         VirtualPoolImplementation impl = new VirtualPoolImplementation(manager, virtualPool);
         (, bytes32[] memory writes) = vm.accesses(address(impl));
@@ -61,6 +64,8 @@ contract TestVirtualPool is Test, Deployers, GasSnapshot {
                 vm.store(address(virtualPool), slot, vm.load(address(impl), slot));
             }
         }
+
+        vm.label(address(virtualPool), "VirtualPoolHook");
 
         // deploy the real pools; adds 1e18 liquidity in each of them, in the -120 to +120 tick range
         (key1, id1) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(0)), 3000, SQRT_RATIO_1_1, ZERO_BYTES);
